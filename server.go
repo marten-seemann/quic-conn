@@ -11,6 +11,7 @@ import (
 
 type server struct {
 	conn       *net.UDPConn
+	tlsConfig  *tls.Config
 	quicServer *quic.Server
 	dataStream utils.Stream
 }
@@ -19,7 +20,7 @@ var _ Listener = &server{}
 var _ net.Conn = &server{}
 
 // Accept waits for and returns the next connection to the listener.
-func (s *server) Accept(sni string, tlsConfig *tls.Config) (net.Conn, error) {
+func (s *server) Accept(sni string) (net.Conn, error) {
 	c := make(chan utils.Stream, 1)
 
 	cb := func(_ *quic.Session, stream utils.Stream) {
@@ -28,7 +29,7 @@ func (s *server) Accept(sni string, tlsConfig *tls.Config) (net.Conn, error) {
 		}
 	}
 
-	quicServer, err := quic.NewServer(sni, tlsConfig, cb)
+	quicServer, err := quic.NewServer(sni, s.tlsConfig, cb)
 	if err != nil {
 		return nil, err
 	}

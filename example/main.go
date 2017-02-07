@@ -26,17 +26,18 @@ func main() {
 	if *startServer {
 		// start the server
 		go func() {
-			ln, err := quicconn.Listen("udp", ":8081")
-			if err != nil {
-				panic(err)
-			}
 			tlsConf, err := generateTLSConfig()
 			if err != nil {
 				panic(err)
 			}
 
+			ln, err := quicconn.Listen("udp", ":8081", tlsConf)
+			if err != nil {
+				panic(err)
+			}
+
 			fmt.Println("Waiting for incoming connection")
-			conn, err := ln.Accept("quic.clemente.io:8081", tlsConf)
+			conn, err := ln.Accept("quic.clemente.io:8081")
 			if err != nil {
 				panic(err)
 			}
