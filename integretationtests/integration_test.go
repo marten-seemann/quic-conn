@@ -54,7 +54,7 @@ var _ = Describe("Integration tests", func() {
 			defer GinkgoRecover()
 			ln, err := quicconn.Listen("udp", ":12345", tlsConfig)
 			Expect(err).ToNot(HaveOccurred())
-			serverConn, err := ln.Accept("localhost:12345")
+			serverConn, err := ln.Accept()
 			Expect(err).ToNot(HaveOccurred())
 			// receive data
 			_, err = io.ReadFull(serverConn, receivedData)

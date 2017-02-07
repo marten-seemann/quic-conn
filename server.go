@@ -16,11 +16,11 @@ type server struct {
 	dataStream utils.Stream
 }
 
-var _ Listener = &server{}
+var _ net.Listener = &server{}
 var _ net.Conn = &server{}
 
 // Accept waits for and returns the next connection to the listener.
-func (s *server) Accept(sni string) (net.Conn, error) {
+func (s *server) Accept() (net.Conn, error) {
 	c := make(chan utils.Stream, 1)
 
 	cb := func(_ *quic.Session, stream utils.Stream) {
@@ -29,7 +29,7 @@ func (s *server) Accept(sni string) (net.Conn, error) {
 		}
 	}
 
-	quicServer, err := quic.NewServer(sni, s.tlsConfig, cb)
+	quicServer, err := quic.NewServer("", s.tlsConfig, cb)
 	if err != nil {
 		return nil, err
 	}

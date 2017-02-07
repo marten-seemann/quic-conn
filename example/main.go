@@ -37,7 +37,7 @@ func main() {
 			}
 
 			fmt.Println("Waiting for incoming connection")
-			conn, err := ln.Accept("quic.clemente.io:8081")
+			conn, err := ln.Accept()
 			if err != nil {
 				panic(err)
 			}

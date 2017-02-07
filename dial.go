@@ -6,7 +6,7 @@ import (
 )
 
 // Listen creates a QUIC listener on the given network interface
-func Listen(network, laddr string, tlsConfig *tls.Config) (Listener, error) {
+func Listen(network, laddr string, tlsConfig *tls.Config) (net.Listener, error) {
 	udpAddr, err := net.ResolveUDPAddr(network, laddr)
 	if err != nil {
 		return nil, &net.OpError{Op: "listen", Net: network, Source: nil, Addr: nil, Err: err}
