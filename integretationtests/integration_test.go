@@ -51,7 +51,7 @@ var _ = Describe("Integration tests", func() {
 		port = strconv.Itoa(int(10000 + r.Int31n(40000))) // random port number between 10000 and 50000
 	})
 
-	It("transfers data from the client to the server", func() {
+	It("transfers data from the client to the server", func(done Done) {
 		receivedData := make([]byte, dataLen)
 		// start the server
 		go func() {
@@ -73,9 +73,10 @@ var _ = Describe("Integration tests", func() {
 		Expect(err).ToNot(HaveOccurred())
 		// check received data
 		Eventually(func() []byte { return receivedData }).Should(Equal(data))
-	})
+		close(done)
+	}, 10)
 
-	It("transfers data from the client to the server and back", func() {
+	It("transfers data from the client to the server and back", func(done Done) {
 		// start the server
 		go func() {
 			defer GinkgoRecover()
@@ -102,5 +103,6 @@ var _ = Describe("Integration tests", func() {
 		_, err = io.ReadFull(clientConn, receivedData)
 		Expect(err).ToNot(HaveOccurred())
 		Eventually(func() []byte { return receivedData }).Should(Equal(data))
-	})
+		close(done)
+	}, 10)
 })
