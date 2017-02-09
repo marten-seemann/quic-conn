@@ -9,6 +9,7 @@ import (
 	"io"
 	"math/big"
 	mrand "math/rand"
+	"strconv"
 	"time"
 
 	quicconn "github.com/marten-seemann/quic-conn"
@@ -20,6 +21,7 @@ var _ = Describe("Integration tests", func() {
 	var data []byte
 	var tlsConfig *tls.Config
 	const dataLen = (1 << 20) // 1 MB
+	var port string
 
 	generateTLSConfig := func() {
 		key, err := rsa.GenerateKey(rand.Reader, 1024)
@@ -45,6 +47,8 @@ var _ = Describe("Integration tests", func() {
 		_, err := r.Read(data)
 		Expect(err).ToNot(HaveOccurred())
 		generateTLSConfig()
+
+		port = strconv.Itoa(int(10000 + r.Int31n(40000))) // random port number between 10000 and 50000
 	})
 
 	It("transfers data from the client to the server", func() {
@@ -52,7 +56,7 @@ var _ = Describe("Integration tests", func() {
 		// start the server
 		go func() {
 			defer GinkgoRecover()
-			ln, err := quicconn.Listen("udp", ":12345", tlsConfig)
+			ln, err := quicconn.Listen("udp", ":"+port, tlsConfig)
 			Expect(err).ToNot(HaveOccurred())
 			serverConn, err := ln.Accept()
 			Expect(err).ToNot(HaveOccurred())
@@ -62,7 +66,7 @@ var _ = Describe("Integration tests", func() {
 		}()
 
 		tlsConf := &tls.Config{InsecureSkipVerify: true}
-		clientConn, err := quicconn.Dial("localhost:12345", tlsConf)
+		clientConn, err := quicconn.Dial("localhost:"+port, tlsConf)
 		Expect(err).ToNot(HaveOccurred())
 		// send data
 		_, err = clientConn.Write(data)
