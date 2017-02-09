@@ -74,4 +74,33 @@ var _ = Describe("Integration tests", func() {
 		// check received data
 		Eventually(func() []byte { return receivedData }).Should(Equal(data))
 	})
+
+	It("transfers data from the client to the server and back", func() {
+		// start the server
+		go func() {
+			defer GinkgoRecover()
+			ln, err := quicconn.Listen("udp", ":"+port, tlsConfig)
+			Expect(err).ToNot(HaveOccurred())
+			serverConn, err := ln.Accept()
+			Expect(err).ToNot(HaveOccurred())
+			// receive data
+			d := make([]byte, dataLen)
+			_, err = io.ReadFull(serverConn, d)
+			Expect(err).ToNot(HaveOccurred())
+			_, err = serverConn.Write(d)
+			Expect(err).ToNot(HaveOccurred())
+		}()
+
+		tlsConf := &tls.Config{InsecureSkipVerify: true}
+		clientConn, err := quicconn.Dial("localhost:"+port, tlsConf)
+		Expect(err).ToNot(HaveOccurred())
+		// send data
+		_, err = clientConn.Write(data)
+		Expect(err).ToNot(HaveOccurred())
+		// check received data
+		receivedData := make([]byte, dataLen)
+		_, err = io.ReadFull(clientConn, receivedData)
+		Expect(err).ToNot(HaveOccurred())
+		Eventually(func() []byte { return receivedData }).Should(Equal(data))
+	})
 })
