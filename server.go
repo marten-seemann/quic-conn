@@ -6,14 +6,16 @@ import (
 	"time"
 
 	quic "github.com/lucas-clemente/quic-go"
-	"github.com/lucas-clemente/quic-go/utils"
 )
 
 type server struct {
-	conn       *net.UDPConn
-	tlsConfig  *tls.Config
-	quicServer *quic.Server
-	dataStream utils.Stream
+	conn      *net.UDPConn
+	tlsConfig *tls.Config
+
+	quicServer    quic.Listener
+	session       quic.Session
+	receiveStream quic.Stream
+	sendStream    quic.Stream
 }
 
 var _ net.Listener = &server{}
@@ -21,22 +23,31 @@ var _ net.Conn = &server{}
 
 // Accept waits for and returns the next connection to the listener.
 func (s *server) Accept() (net.Conn, error) {
-	c := make(chan utils.Stream, 1)
+	c := make(chan quic.Session, 1)
 
-	cb := func(_ *quic.Session, stream utils.Stream) {
-		if stream.StreamID() != 1 {
-			c <- stream
-		}
+	config := &quic.Config{
+		TLSConfig: s.tlsConfig,
+		ConnState: func(sess quic.Session, state quic.ConnState) {
+			if state == quic.ConnStateForwardSecure {
+				c <- sess
+			}
+		},
 	}
 
-	quicServer, err := quic.NewServer("", s.tlsConfig, cb)
+	quicServer, err := quic.Listen(s.conn, config)
 	if err != nil {
 		return nil, err
 	}
-	go quicServer.Serve(s.conn)
+	go quicServer.Serve()
 	s.quicServer = quicServer
 	// wait until a client establishes a connection
-	s.dataStream = <-c
+	s.session = <-c
+
+	s.sendStream, err = s.session.OpenStream()
+	if err != nil {
+		return nil, err
+	}
+
 	return s, nil
 }
 
@@ -52,11 +63,20 @@ func (s *server) Addr() net.Addr {
 }
 
 func (s *server) Read(b []byte) (int, error) {
-	return s.dataStream.Read(b)
+	if s.receiveStream == nil {
+		var err error
+		s.receiveStream, err = s.session.AcceptStream()
+		//TODO: check stream id
+		if err != nil {
+			return 0, err
+		}
+	}
+
+	return s.receiveStream.Read(b)
 }
 
 func (s *server) Write(b []byte) (int, error) {
-	return s.dataStream.Write(b)
+	return s.sendStream.Write(b)
 }
 
 func (s *server) LocalAddr() net.Addr {
