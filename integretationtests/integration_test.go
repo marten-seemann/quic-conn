@@ -20,7 +20,7 @@ import (
 var _ = Describe("Integration tests", func() {
 	var data []byte
 	var tlsConfig *tls.Config
-	const dataLen = (1 << 20) // 1 MB
+	const dataLen = 100 * (1 << 10) // 100 kb
 	var port string
 
 	generateTLSConfig := func() {
