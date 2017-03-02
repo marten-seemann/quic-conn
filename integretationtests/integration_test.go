@@ -107,12 +107,14 @@ var _ = Describe("Integration tests", func() {
 	}, 10)
 
 	It("transfers data from the server to the client", func(done Done) {
+		serverStarted := make(chan bool)
 		receivedData := make([]byte, dataLen)
 		// start the server
 		go func() {
 			defer GinkgoRecover()
 			ln, err := quicconn.Listen("udp", ":"+port, tlsConfig)
 			Expect(err).ToNot(HaveOccurred())
+			serverStarted <- true
 			serverConn, err := ln.Accept()
 			Expect(err).ToNot(HaveOccurred())
 			// send data
@@ -120,6 +122,7 @@ var _ = Describe("Integration tests", func() {
 			Expect(err).ToNot(HaveOccurred())
 		}()
 
+		<-serverStarted
 		tlsConf := &tls.Config{InsecureSkipVerify: true}
 		clientConn, err := quicconn.Dial("localhost:"+port, tlsConf)
 		Expect(err).ToNot(HaveOccurred())
@@ -132,12 +135,14 @@ var _ = Describe("Integration tests", func() {
 	}, 10)
 
 	It("transfers data from the server to the client and back", func(done Done) {
+		serverStarted := make(chan bool)
 		receivedData := make([]byte, dataLen)
 		// start the server
 		go func() {
 			defer GinkgoRecover()
 			ln, err := quicconn.Listen("udp", ":"+port, tlsConfig)
 			Expect(err).ToNot(HaveOccurred())
+			serverStarted <- true
 			serverConn, err := ln.Accept()
 			Expect(err).ToNot(HaveOccurred())
 			// send data
@@ -147,6 +152,7 @@ var _ = Describe("Integration tests", func() {
 			Expect(err).ToNot(HaveOccurred())
 		}()
 
+		<-serverStarted
 		tlsConf := &tls.Config{InsecureSkipVerify: true}
 		clientConn, err := quicconn.Dial("localhost:"+port, tlsConf)
 		Expect(err).ToNot(HaveOccurred())
