@@ -74,37 +74,6 @@ func (m *mockStream) Reset(error) {
 
 var _ quic.Stream = &mockStream{}
 
-type mockSession struct {
-	streamToAccept quic.Stream
-	streamToOpen   quic.Stream
-}
-
-func (m *mockSession) AcceptStream() (quic.Stream, error) {
-	// AcceptStream blocks until a stream is available
-	if m.streamToAccept == nil {
-		time.Sleep(time.Hour)
-	}
-	return m.streamToAccept, nil
-}
-
-func (m *mockSession) OpenStream() (quic.Stream, error) {
-	return m.streamToOpen, nil
-}
-
-func (m *mockSession) OpenStreamSync() (quic.Stream, error) {
-	return m.streamToOpen, nil
-}
-
-func (m *mockSession) RemoteAddr() net.Addr {
-	return nil
-}
-
-func (m *mockSession) Close(error) error {
-	return nil
-}
-
-var _ quic.Session = &mockSession{}
-
 var _ = Describe("Server", func() {
 	var (
 		mconn *mockPacketConn
@@ -129,12 +98,12 @@ var _ = Describe("Server", func() {
 
 	It("returns once it has a forward-secure connection", func() {
 		var returned bool
-		var conn net.Conn
+		var qconn net.Conn
 
 		go func() {
 			defer GinkgoRecover()
 			var err error
-			conn, err = s.Accept()
+			qconn, err = s.Accept()
 			Expect(err).ToNot(HaveOccurred())
 			returned = true
 		}()
@@ -146,88 +115,13 @@ var _ = Describe("Server", func() {
 		Consistently(func() bool { return returned }).Should(BeFalse())
 		s.connStateCallback(sess, quic.ConnStateForwardSecure)
 		Eventually(func() bool { return returned }).Should(BeTrue())
-		Expect(conn).To(Equal(s))
+		Expect(qconn).ToNot(BeNil())
+		Expect(qconn.(*conn).session).To(Equal(sess))
 	})
 
 	It("returns the address of the underlying conn", func() {
 		addr := &net.UDPAddr{IP: net.IPv4(192, 168, 0, 1), Port: 1337}
 		mconn.addr = addr
 		Expect(s.Addr()).To(Equal(addr))
-		Expect(s.LocalAddr()).To(Equal(addr))
-	})
-
-	It("writes data", func() {
-		var conn net.Conn
-
-		go func() {
-			defer GinkgoRecover()
-			var err error
-			conn, err = s.Accept()
-			Expect(err).ToNot(HaveOccurred())
-		}()
-
-		time.Sleep(50 * time.Millisecond)
-		dataStream := &mockStream{}
-		sess := &mockSession{
-			streamToOpen: dataStream,
-		}
-		go s.connStateCallback(sess, quic.ConnStateForwardSecure)
-		Eventually(func() net.Conn { return conn }).ShouldNot(BeNil())
-		n, err := conn.Write([]byte("foobar"))
-		Expect(err).ToNot(HaveOccurred())
-		Expect(n).To(Equal(6))
-		Expect(dataStream.dataWritten.Bytes()).To(Equal([]byte("foobar")))
-	})
-
-	It("waits with reading until a stream can be accepted", func() {
-		var conn net.Conn
-
-		go func() {
-			defer GinkgoRecover()
-			var err error
-			conn, err = s.Accept()
-			Expect(err).ToNot(HaveOccurred())
-		}()
-
-		time.Sleep(50 * time.Millisecond)
-		sess := &mockSession{streamToOpen: &mockStream{}}
-		s.connStateCallback(sess, quic.ConnStateForwardSecure)
-		Eventually(func() net.Conn { return conn }).ShouldNot(BeNil())
-
-		var readReturned bool
-		go func() {
-			defer GinkgoRecover()
-			_, err := s.Read(make([]byte, 1))
-			Expect(err).ToNot(HaveOccurred())
-			readReturned = true
-		}()
-		Consistently(func() bool { return readReturned }).Should(BeFalse())
-	})
-
-	It("reads data", func() {
-		var conn net.Conn
-
-		go func() {
-			defer GinkgoRecover()
-			var err error
-			conn, err = s.Accept()
-			Expect(err).ToNot(HaveOccurred())
-		}()
-
-		time.Sleep(50 * time.Millisecond)
-		dataStream := &mockStream{}
-		dataStream.dataToRead.Write([]byte("foobar"))
-		sess := &mockSession{
-			streamToOpen:   &mockStream{},
-			streamToAccept: dataStream,
-		}
-		s.connStateCallback(sess, quic.ConnStateForwardSecure)
-		Eventually(func() net.Conn { return conn }).ShouldNot(BeNil())
-
-		data := make([]byte, 10)
-		n, err := conn.Read(data)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(n).To(Equal(6))
-		Expect(data).To(ContainSubstring("foobar"))
 	})
 })
