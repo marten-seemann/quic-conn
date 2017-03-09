@@ -100,15 +100,17 @@ func (m *mockSession) Close(error) error {
 var _ quic.Session = &mockSession{}
 
 var _ = Describe("Server", func() {
-	var mconn *mockPacketConn
+	var (
+		mconn *mockPacketConn
+		s     *server
+	)
 
 	BeforeEach(func() {
 		mconn = &mockPacketConn{}
+		s = &server{conn: mconn}
 	})
 
 	It("waits for new connections", func() {
-		s := &server{conn: mconn}
-
 		var returned bool
 		go func() {
 			defer GinkgoRecover()
@@ -120,7 +122,6 @@ var _ = Describe("Server", func() {
 	})
 
 	It("returns once it has a forward-secure connection", func() {
-		s := &server{conn: mconn}
 		sess := &mockSession{}
 
 		var returned bool
@@ -140,5 +141,12 @@ var _ = Describe("Server", func() {
 		s.connStateCallback(sess, quic.ConnStateForwardSecure)
 		Eventually(func() bool { return returned }).Should(BeTrue())
 		Expect(server).To(Equal(s))
+	})
+
+	It("returns the address of the underlying conn", func() {
+		addr := &net.UDPAddr{IP: net.IPv4(192, 168, 0, 1), Port: 1337}
+		mconn.addr = addr
+		Expect(s.Addr()).To(Equal(addr))
+		Expect(s.LocalAddr()).To(Equal(addr))
 	})
 })

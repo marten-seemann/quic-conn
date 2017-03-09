@@ -61,11 +61,6 @@ func (s *server) Close() error {
 	return s.quicServer.Close()
 }
 
-// Addr returns the listener's network address.
-func (s *server) Addr() net.Addr {
-	return s.conn.LocalAddr()
-}
-
 func (s *server) Read(b []byte) (int, error) {
 	if s.receiveStream == nil {
 		var err error
@@ -83,8 +78,16 @@ func (s *server) Write(b []byte) (int, error) {
 	return s.sendStream.Write(b)
 }
 
+// LocalAddr returns the local network address.
+// needed to fulfill the net.Conn interface
 func (s *server) LocalAddr() net.Addr {
-	return nil
+	return s.conn.LocalAddr()
+}
+
+// Addr returns the listener's network address.
+// needed to fulfill the net.Listener interface
+func (s *server) Addr() net.Addr {
+	return s.conn.LocalAddr()
 }
 
 func (s *server) RemoteAddr() net.Addr {
