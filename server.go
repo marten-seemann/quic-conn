@@ -9,8 +9,10 @@ import (
 )
 
 type server struct {
-	conn      *net.UDPConn
+	conn      net.PacketConn
 	tlsConfig *tls.Config
+
+	sessionChan chan quic.Session
 
 	quicServer    quic.Listener
 	session       quic.Session
@@ -23,15 +25,11 @@ var _ net.Conn = &server{}
 
 // Accept waits for and returns the next connection to the listener.
 func (s *server) Accept() (net.Conn, error) {
-	c := make(chan quic.Session, 1)
+	s.sessionChan = make(chan quic.Session)
 
 	config := &quic.Config{
 		TLSConfig: s.tlsConfig,
-		ConnState: func(sess quic.Session, state quic.ConnState) {
-			if state == quic.ConnStateForwardSecure {
-				c <- sess
-			}
-		},
+		ConnState: s.connStateCallback,
 	}
 
 	quicServer, err := quic.Listen(s.conn, config)
@@ -41,7 +39,7 @@ func (s *server) Accept() (net.Conn, error) {
 	go quicServer.Serve()
 	s.quicServer = quicServer
 	// wait until a client establishes a connection
-	s.session = <-c
+	s.session = <-s.sessionChan
 
 	s.sendStream, err = s.session.OpenStream()
 	if err != nil {
@@ -49,6 +47,12 @@ func (s *server) Accept() (net.Conn, error) {
 	}
 
 	return s, nil
+}
+
+func (s *server) connStateCallback(sess quic.Session, state quic.ConnState) {
+	if state == quic.ConnStateForwardSecure {
+		s.sessionChan <- sess
+	}
 }
 
 // Close closes the listener.
