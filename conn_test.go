@@ -1,6 +1,7 @@
 package quicconn
 
 import (
+	"errors"
 	"net"
 	"time"
 
@@ -14,10 +15,19 @@ type mockSession struct {
 	localAddr  net.Addr
 
 	streamToAccept quic.Stream
-	streamToOpen   quic.Stream
+	acceptError    error
+
+	streamToOpen quic.Stream
+	openError    error
+
+	closed          bool
+	closedWithError error
 }
 
 func (m *mockSession) AcceptStream() (quic.Stream, error) {
+	if m.acceptError != nil {
+		return nil, m.acceptError
+	}
 	// AcceptStream blocks until a stream is available
 	if m.streamToAccept == nil {
 		time.Sleep(time.Hour)
@@ -26,6 +36,9 @@ func (m *mockSession) AcceptStream() (quic.Stream, error) {
 }
 
 func (m *mockSession) OpenStream() (quic.Stream, error) {
+	if m.openError != nil {
+		return nil, m.openError
+	}
 	return m.streamToOpen, nil
 }
 
@@ -41,7 +54,9 @@ func (m *mockSession) RemoteAddr() net.Addr {
 	return m.remoteAddr
 }
 
-func (m *mockSession) Close(error) error {
+func (m *mockSession) Close(e error) error {
+	m.closedWithError = e
+	m.closed = true
 	return nil
 }
 
@@ -64,6 +79,13 @@ var _ = Describe("Conn", func() {
 		}
 		c, err = newConn(sess)
 		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("errors when the send stream can't be opened", func() {
+		testErr := errors.New("test error")
+		sess.openError = testErr
+		_, err := newConn(sess)
+		Expect(err).To(MatchError(testErr))
 	})
 
 	It("returns the remote address", func() {
@@ -97,6 +119,13 @@ var _ = Describe("Conn", func() {
 		Consistently(func() bool { return readReturned }).Should(BeFalse())
 	})
 
+	It("errors if accepting the stream fails", func() {
+		testErr := errors.New("test error")
+		sess.acceptError = testErr
+		_, err := c.Read(make([]byte, 1))
+		Expect(err).To(MatchError(testErr))
+	})
+
 	It("reads data", func() {
 		receiveStream.dataToRead.Write([]byte("foobar"))
 		sess.streamToAccept = receiveStream
@@ -106,5 +135,11 @@ var _ = Describe("Conn", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(n).To(Equal(6))
 		Expect(data).To(ContainSubstring("foobar"))
+	})
+
+	It("closes", func() {
+		c.Close()
+		Expect(sess.closed).To(BeTrue())
+		Expect(sess.closedWithError).To(BeNil())
 	})
 })
