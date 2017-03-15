@@ -124,4 +124,27 @@ var _ = Describe("Server", func() {
 		mconn.addr = addr
 		Expect(s.Addr()).To(Equal(addr))
 	})
+
+	It("unblocks Accepts when it is closed", func() {
+		var returned bool
+
+		// we need to use a real conn here, not the mock conn
+		// the mockPacketConn doesn't unblock the ReadFrom when it is closed
+		udpAddr, err := net.ResolveUDPAddr("udp", "localhost:12345")
+		Expect(err).ToNot(HaveOccurred())
+		udpConn, err := net.ListenUDP("udp", udpAddr)
+		Expect(err).ToNot(HaveOccurred())
+		s.conn = udpConn
+
+		go func() {
+			defer GinkgoRecover()
+			_, _ = s.Accept()
+			returned = true
+		}()
+
+		Consistently(func() bool { return returned }).Should(BeFalse())
+		err = s.Close()
+		Expect(err).ToNot(HaveOccurred())
+		Eventually(func() bool { return returned }).Should(BeTrue())
+	})
 })

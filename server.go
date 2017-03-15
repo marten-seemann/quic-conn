@@ -12,6 +12,7 @@ type server struct {
 	tlsConfig *tls.Config
 
 	sessionChan chan quic.Session
+	errorChan   chan error
 
 	quicServer quic.Listener
 }
@@ -21,6 +22,7 @@ var _ net.Listener = &server{}
 // Accept waits for and returns the next connection to the listener.
 func (s *server) Accept() (net.Conn, error) {
 	s.sessionChan = make(chan quic.Session)
+	s.errorChan = make(chan error)
 
 	config := &quic.Config{
 		TLSConfig: s.tlsConfig,
@@ -31,16 +33,30 @@ func (s *server) Accept() (net.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	go quicServer.Serve()
 	s.quicServer = quicServer
+	s.serve()
 
 	// wait until a client establishes a connection
-	sess := <-s.sessionChan
+	var sess quic.Session
+	select {
+	case sess = <-s.sessionChan:
+		// everything interesting happens below
+	case serveErr := <-s.errorChan:
+		return nil, serveErr
+	}
+
 	qconn, err := newConn(sess)
 	if err != nil {
 		return nil, err
 	}
 	return qconn, nil
+}
+
+func (s *server) serve() {
+	go func() {
+		err := s.quicServer.Serve()
+		s.errorChan <- err
+	}()
 }
 
 func (s *server) connStateCallback(sess quic.Session, state quic.ConnState) {
