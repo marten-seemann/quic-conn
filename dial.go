@@ -3,6 +3,8 @@ package quicconn
 import (
 	"crypto/tls"
 	"net"
+
+	quic "github.com/lucas-clemente/quic-go"
 )
 
 // Listen creates a QUIC listener on the given network interface
@@ -24,9 +26,23 @@ func Listen(network, laddr string, tlsConfig *tls.Config) (net.Listener, error) 
 // Dial creates a new QUIC connection
 // it returns once the connection is established and secured with forward-secure keys
 func Dial(addr string, tlsConfig *tls.Config) (net.Conn, error) {
-	c, err := newClient(addr, tlsConfig)
+	config := &quic.Config{
+		TLSConfig: tlsConfig,
+	}
+
+	// DialAddr returns once a forward-secure connection is established
+	quicSession, err := quic.DialAddr(addr, config)
 	if err != nil {
 		return nil, err
 	}
-	return c, nil
+
+	sendStream, err := quicSession.OpenStream()
+	if err != nil {
+		return nil, err
+	}
+
+	return &conn{
+		session:    quicSession,
+		sendStream: sendStream,
+	}, nil
 }
