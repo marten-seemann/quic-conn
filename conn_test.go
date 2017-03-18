@@ -126,6 +126,15 @@ var _ = Describe("Conn", func() {
 		Expect(err).To(MatchError(testErr))
 	})
 
+	It("immediately closes the receive stream", func() {
+		receiveStream.dataToRead.Write([]byte("foobar"))
+		sess.streamToAccept = receiveStream
+
+		_, err := c.Read(make([]byte, 1))
+		Expect(err).ToNot(HaveOccurred())
+		Expect(receiveStream.closed).To(BeTrue())
+	})
+
 	It("reads data", func() {
 		receiveStream.dataToRead.Write([]byte("foobar"))
 		sess.streamToAccept = receiveStream

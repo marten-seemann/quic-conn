@@ -33,6 +33,11 @@ func (c *conn) Read(b []byte) (int, error) {
 		if err != nil {
 			return 0, err
 		}
+		// quic.Stream.Close() closes the stream for writing
+		err = c.receiveStream.Close()
+		if err != nil {
+			return 0, err
+		}
 	}
 
 	return c.receiveStream.Read(b)
