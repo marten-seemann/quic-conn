@@ -52,9 +52,10 @@ var _ = Describe("Integration tests", func() {
 	})
 
 	It("transfers data from the client to the server", func(done Done) {
-		receivedData := make([]byte, dataLen)
+		dataChan := make(chan []byte)
 		// start the server
 		go func() {
+			receivedData := make([]byte, dataLen)
 			defer GinkgoRecover()
 			ln, err := quicconn.Listen("udp", ":"+port, tlsConfig)
 			Expect(err).ToNot(HaveOccurred())
@@ -63,6 +64,7 @@ var _ = Describe("Integration tests", func() {
 			// receive data
 			_, err = io.ReadFull(serverConn, receivedData)
 			Expect(err).ToNot(HaveOccurred())
+			dataChan <- receivedData
 		}()
 
 		tlsConf := &tls.Config{InsecureSkipVerify: true}
@@ -72,7 +74,7 @@ var _ = Describe("Integration tests", func() {
 		_, err = clientConn.Write(data)
 		Expect(err).ToNot(HaveOccurred())
 		// check received data
-		Eventually(func() []byte { return receivedData }).Should(Equal(data))
+		Eventually(dataChan, 10).Should(Receive(Equal(data)))
 		close(done)
 	}, 10)
 
@@ -102,7 +104,7 @@ var _ = Describe("Integration tests", func() {
 		receivedData := make([]byte, dataLen)
 		_, err = io.ReadFull(clientConn, receivedData)
 		Expect(err).ToNot(HaveOccurred())
-		Eventually(func() []byte { return receivedData }).Should(Equal(data))
+		Expect(receivedData).To(Equal(data))
 		close(done)
 	}, 10)
 
@@ -135,11 +137,12 @@ var _ = Describe("Integration tests", func() {
 	}, 10)
 
 	It("transfers data from the server to the client and back", func(done Done) {
+		dataChan := make(chan []byte)
 		serverStarted := make(chan bool)
-		receivedData := make([]byte, dataLen)
 		// start the server
 		go func() {
 			defer GinkgoRecover()
+			receivedData := make([]byte, dataLen)
 			ln, err := quicconn.Listen("udp", ":"+port, tlsConfig)
 			Expect(err).ToNot(HaveOccurred())
 			serverStarted <- true
@@ -150,6 +153,7 @@ var _ = Describe("Integration tests", func() {
 			Expect(err).ToNot(HaveOccurred())
 			_, err = io.ReadFull(serverConn, receivedData)
 			Expect(err).ToNot(HaveOccurred())
+			dataChan <- receivedData
 		}()
 
 		<-serverStarted
@@ -163,7 +167,7 @@ var _ = Describe("Integration tests", func() {
 		_, err = clientConn.Write(d)
 		Expect(err).ToNot(HaveOccurred())
 		// check received data
-		Eventually(func() []byte { return receivedData }).Should(Equal(data))
+		Eventually(dataChan).Should(Receive(Equal(data)))
 		close(done)
 	}, 10)
 })
