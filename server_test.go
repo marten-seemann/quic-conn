@@ -96,29 +96,6 @@ var _ = Describe("Server", func() {
 		Consistently(func() bool { return returned }).Should(BeFalse())
 	})
 
-	It("returns once it has a forward-secure connection", func() {
-		var returned bool
-		var qconn net.Conn
-
-		go func() {
-			defer GinkgoRecover()
-			var err error
-			qconn, err = s.Accept()
-			Expect(err).ToNot(HaveOccurred())
-			returned = true
-		}()
-
-		sess := &mockSession{}
-		s.connStateCallback(sess, quic.ConnStateVersionNegotiated)
-		Consistently(func() bool { return returned }).Should(BeFalse())
-		s.connStateCallback(sess, quic.ConnStateInitial)
-		Consistently(func() bool { return returned }).Should(BeFalse())
-		s.connStateCallback(sess, quic.ConnStateForwardSecure)
-		Eventually(func() bool { return returned }).Should(BeTrue())
-		Expect(qconn).ToNot(BeNil())
-		Expect(qconn.(*conn).session).To(Equal(sess))
-	})
-
 	It("returns the address of the underlying conn", func() {
 		addr := &net.UDPAddr{IP: net.IPv4(192, 168, 0, 1), Port: 1337}
 		mconn.addr = addr
