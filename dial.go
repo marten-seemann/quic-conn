@@ -17,9 +17,17 @@ func Listen(network, laddr string, tlsConfig *tls.Config) (net.Listener, error) 
 	if err != nil {
 		return nil, err
 	}
+
+	config := &quic.Config{
+		TLSConfig: tlsConfig,
+	}
+
+	ln, err := quic.Listen(conn, config)
+	if err != nil {
+		return nil, err
+	}
 	return &server{
-		conn:      conn,
-		tlsConfig: tlsConfig,
+		quicServer: ln,
 	}, nil
 }
 

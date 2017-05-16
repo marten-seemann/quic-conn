@@ -1,19 +1,12 @@
 package quicconn
 
 import (
-	"crypto/tls"
 	"net"
 
 	quic "github.com/lucas-clemente/quic-go"
 )
 
 type server struct {
-	conn      net.PacketConn
-	tlsConfig *tls.Config
-
-	sessionChan chan quic.Session
-	errorChan   chan error
-
 	quicServer quic.Listener
 }
 
@@ -21,18 +14,7 @@ var _ net.Listener = &server{}
 
 // Accept waits for and returns the next connection to the listener.
 func (s *server) Accept() (net.Conn, error) {
-	config := &quic.Config{
-		TLSConfig: s.tlsConfig,
-	}
-
-	quicServer, err := quic.Listen(s.conn, config)
-	if err != nil {
-		return nil, err
-	}
-	s.quicServer = quicServer
-
-	// wait until a client establishes a connection
-	sess, err := quicServer.Accept()
+	sess, err := s.quicServer.Accept()
 	if err != nil {
 		return nil, err
 	}
@@ -51,5 +33,5 @@ func (s *server) Close() error {
 
 // Addr returns the listener's network address.
 func (s *server) Addr() net.Addr {
-	return s.conn.LocalAddr()
+	return s.quicServer.Addr()
 }
