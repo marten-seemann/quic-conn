@@ -7,6 +7,8 @@ import (
 	quic "github.com/lucas-clemente/quic-go"
 )
 
+var quicListen = quic.Listen
+
 // Listen creates a QUIC listener on the given network interface
 func Listen(network, laddr string, tlsConfig *tls.Config) (net.Listener, error) {
 	udpAddr, err := net.ResolveUDPAddr(network, laddr)
@@ -22,7 +24,7 @@ func Listen(network, laddr string, tlsConfig *tls.Config) (net.Listener, error) 
 		TLSConfig: tlsConfig,
 	}
 
-	ln, err := quic.Listen(conn, config)
+	ln, err := quicListen(conn, config)
 	if err != nil {
 		return nil, err
 	}
