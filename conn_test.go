@@ -60,6 +60,10 @@ func (m *mockSession) Close(e error) error {
 	return nil
 }
 
+func (m *mockSession) WaitUntilClosed() {
+	panic("not implemented")
+}
+
 var _ quic.Session = &mockSession{}
 
 var _ = Describe("Conn", func() {
