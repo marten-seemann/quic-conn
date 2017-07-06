@@ -18,21 +18,23 @@ var _ = Describe("Dial and Listen", func() {
 	It("listens", func() {
 		var conn net.PacketConn
 		var conf *quic.Config
+		var tlsConfig *tls.Config
 		tlsConf := &tls.Config{}
-		quicListen = func(c net.PacketConn, quicConfig *quic.Config) (quic.Listener, error) {
+		quicListen = func(c net.PacketConn, tlsConf *tls.Config, quicConfig *quic.Config) (quic.Listener, error) {
 			conn = c
 			conf = quicConfig
+			tlsConfig = tlsConf
 			return nil, nil
 		}
 		_, err := Listen("udp", "localhost:12345", tlsConf)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(conn.(*net.UDPConn).LocalAddr().String()).To(Equal("127.0.0.1:12345"))
-		Expect(conf.TLSConfig).To(Equal(tlsConf))
+		Expect(tlsConfig).To(Equal(tlsConf))
 	})
 
 	It("returns listen errors", func() {
 		testErr := errors.New("listen error")
-		quicListen = func(_ net.PacketConn, _ *quic.Config) (quic.Listener, error) {
+		quicListen = func(_ net.PacketConn, _ *tls.Config, _ *quic.Config) (quic.Listener, error) {
 			return nil, testErr
 		}
 		_, err := Listen("udp", "localhost:12346", &tls.Config{})

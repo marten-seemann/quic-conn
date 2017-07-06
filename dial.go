@@ -20,11 +20,7 @@ func Listen(network, laddr string, tlsConfig *tls.Config) (net.Listener, error) 
 		return nil, err
 	}
 
-	config := &quic.Config{
-		TLSConfig: tlsConfig,
-	}
-
-	ln, err := quicListen(conn, config)
+	ln, err := quicListen(conn, tlsConfig, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -36,12 +32,8 @@ func Listen(network, laddr string, tlsConfig *tls.Config) (net.Listener, error) 
 // Dial creates a new QUIC connection
 // it returns once the connection is established and secured with forward-secure keys
 func Dial(addr string, tlsConfig *tls.Config) (net.Conn, error) {
-	config := &quic.Config{
-		TLSConfig: tlsConfig,
-	}
-
 	// DialAddr returns once a forward-secure connection is established
-	quicSession, err := quic.DialAddr(addr, config)
+	quicSession, err := quic.DialAddr(addr, tlsConfig, nil)
 	if err != nil {
 		return nil, err
 	}
