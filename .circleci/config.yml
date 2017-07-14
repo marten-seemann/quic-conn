@@ -1,0 +1,14 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/golang:1.8
+      
+    working_directory: /go/src/github.com/marten-seemann/quic-conn
+    steps:
+      - run: go get github.com/onsi/ginkgo/ginkgo
+      - run: go get github.com/onsi/gomega
+      - checkout
+      - run: go get -t ./...
+      - run: ginkgo -r --cover --randomizeAllSpecs --randomizeSuites --trace --progress -skipPackage integrationtests
+      - run: ginkgo -r --randomizeAllSpecs --randomizeSuites --trace --progress integrationtests
