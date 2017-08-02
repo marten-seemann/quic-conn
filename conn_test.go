@@ -1,6 +1,7 @@
 package quicconn
 
 import (
+	"context"
 	"errors"
 	"net"
 	"time"
@@ -60,7 +61,7 @@ func (m *mockSession) Close(e error) error {
 	return nil
 }
 
-func (m *mockSession) WaitUntilClosed() {
+func (m *mockSession) Context() context.Context {
 	panic("not implemented")
 }
 

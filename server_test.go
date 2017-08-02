@@ -2,6 +2,7 @@ package quicconn
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"io"
 	"net"
@@ -64,6 +65,7 @@ func (m *mockStream) Close() error {
 func (m *mockStream) Write(p []byte) (int, error)      { return m.dataWritten.Write(p) }
 func (m *mockStream) StreamID() protocol.StreamID      { return m.id }
 func (m *mockStream) Reset(error)                      { panic("not implemented") }
+func (m *mockStream) Context() context.Context         { panic("not implemented") }
 func (m *mockStream) SetReadDeadline(time.Time) error  { panic("not implemented") }
 func (m *mockStream) SetWriteDeadline(time.Time) error { panic("not implemented") }
 func (m *mockStream) SetDeadline(time.Time) error      { panic("not implemented") }
