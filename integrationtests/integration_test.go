@@ -9,7 +9,7 @@ import (
 	"io"
 	"math/big"
 	mrand "math/rand"
-	"strconv"
+	"net"
 	"time"
 
 	quicconn "github.com/marten-seemann/quic-conn"
@@ -21,7 +21,6 @@ var _ = Describe("Integration tests", func() {
 	var data []byte
 	var tlsConfig *tls.Config
 	const dataLen = 100 * (1 << 10) // 100 kb
-	var port string
 
 	generateTLSConfig := func() {
 		key, err := rsa.GenerateKey(rand.Reader, 1024)
@@ -47,18 +46,19 @@ var _ = Describe("Integration tests", func() {
 		_, err := r.Read(data)
 		Expect(err).ToNot(HaveOccurred())
 		generateTLSConfig()
-
-		port = strconv.Itoa(int(10000 + r.Int31n(40000))) // random port number between 10000 and 50000
 	})
 
 	It("transfers data from the client to the server", func(done Done) {
 		dataChan := make(chan []byte)
+		serverAddr := make(chan net.Addr)
 		// start the server
 		go func() {
+			defer GinkgoRecover()
 			receivedData := make([]byte, dataLen)
 			defer GinkgoRecover()
-			ln, err := quicconn.Listen("udp", ":"+port, tlsConfig)
+			ln, err := quicconn.Listen("udp", "127.0.0.1:0", tlsConfig)
 			Expect(err).ToNot(HaveOccurred())
+			serverAddr <- ln.Addr()
 			serverConn, err := ln.Accept()
 			Expect(err).ToNot(HaveOccurred())
 			// receive data
@@ -67,8 +67,9 @@ var _ = Describe("Integration tests", func() {
 			dataChan <- receivedData
 		}()
 
+		addr := <-serverAddr
 		tlsConf := &tls.Config{InsecureSkipVerify: true}
-		clientConn, err := quicconn.Dial("localhost:"+port, tlsConf)
+		clientConn, err := quicconn.Dial(addr.String(), tlsConf)
 		Expect(err).ToNot(HaveOccurred())
 		// send data
 		_, err = clientConn.Write(data)
@@ -79,11 +80,13 @@ var _ = Describe("Integration tests", func() {
 	}, 10)
 
 	It("transfers data from the client to the server and back", func(done Done) {
+		serverAddr := make(chan net.Addr)
 		// start the server
 		go func() {
 			defer GinkgoRecover()
-			ln, err := quicconn.Listen("udp", ":"+port, tlsConfig)
+			ln, err := quicconn.Listen("udp", "127.0.0.1:0", tlsConfig)
 			Expect(err).ToNot(HaveOccurred())
+			serverAddr <- ln.Addr()
 			serverConn, err := ln.Accept()
 			Expect(err).ToNot(HaveOccurred())
 			// receive data
@@ -94,8 +97,9 @@ var _ = Describe("Integration tests", func() {
 			Expect(err).ToNot(HaveOccurred())
 		}()
 
+		addr := <-serverAddr
 		tlsConf := &tls.Config{InsecureSkipVerify: true}
-		clientConn, err := quicconn.Dial("localhost:"+port, tlsConf)
+		clientConn, err := quicconn.Dial(addr.String(), tlsConf)
 		Expect(err).ToNot(HaveOccurred())
 		// send data
 		_, err = clientConn.Write(data)
@@ -109,14 +113,15 @@ var _ = Describe("Integration tests", func() {
 	}, 10)
 
 	It("transfers data from the server to the client", func(done Done) {
-		serverStarted := make(chan bool)
+		serverAddr := make(chan net.Addr)
 		receivedData := make([]byte, dataLen)
 		// start the server
 		go func() {
 			defer GinkgoRecover()
-			ln, err := quicconn.Listen("udp", ":"+port, tlsConfig)
+			var err error
+			ln, err := quicconn.Listen("udp", "127.0.0.1:0", tlsConfig)
 			Expect(err).ToNot(HaveOccurred())
-			serverStarted <- true
+			serverAddr <- ln.Addr()
 			serverConn, err := ln.Accept()
 			Expect(err).ToNot(HaveOccurred())
 			// send data
@@ -124,9 +129,9 @@ var _ = Describe("Integration tests", func() {
 			Expect(err).ToNot(HaveOccurred())
 		}()
 
-		<-serverStarted
+		addr := <-serverAddr
 		tlsConf := &tls.Config{InsecureSkipVerify: true}
-		clientConn, err := quicconn.Dial("localhost:"+port, tlsConf)
+		clientConn, err := quicconn.Dial(addr.String(), tlsConf)
 		Expect(err).ToNot(HaveOccurred())
 		// receive data
 		_, err = io.ReadFull(clientConn, receivedData)
@@ -138,14 +143,14 @@ var _ = Describe("Integration tests", func() {
 
 	It("transfers data from the server to the client and back", func(done Done) {
 		dataChan := make(chan []byte)
-		serverStarted := make(chan bool)
+		serverAddr := make(chan net.Addr)
 		// start the server
 		go func() {
 			defer GinkgoRecover()
 			receivedData := make([]byte, dataLen)
-			ln, err := quicconn.Listen("udp", ":"+port, tlsConfig)
+			ln, err := quicconn.Listen("udp", "127.0.0.1:0", tlsConfig)
 			Expect(err).ToNot(HaveOccurred())
-			serverStarted <- true
+			serverAddr <- ln.Addr()
 			serverConn, err := ln.Accept()
 			Expect(err).ToNot(HaveOccurred())
 			// send data
@@ -156,9 +161,9 @@ var _ = Describe("Integration tests", func() {
 			dataChan <- receivedData
 		}()
 
-		<-serverStarted
+		addr := <-serverAddr
 		tlsConf := &tls.Config{InsecureSkipVerify: true}
-		clientConn, err := quicconn.Dial("localhost:"+port, tlsConf)
+		clientConn, err := quicconn.Dial(addr.String(), tlsConf)
 		Expect(err).ToNot(HaveOccurred())
 		// receive data
 		d := make([]byte, dataLen)
