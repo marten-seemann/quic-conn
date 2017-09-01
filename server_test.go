@@ -9,7 +9,6 @@ import (
 	"time"
 
 	quic "github.com/lucas-clemente/quic-go"
-	"github.com/lucas-clemente/quic-go/protocol"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -47,7 +46,7 @@ func (c *mockPacketConn) SetReadDeadline(t time.Time) error  { panic("not implem
 func (c *mockPacketConn) SetWriteDeadline(t time.Time) error { panic("not implemented") }
 
 type mockStream struct {
-	id          protocol.StreamID
+	id          quic.StreamID
 	closed      bool
 	dataWritten bytes.Buffer
 	dataToRead  bytes.Buffer
@@ -63,7 +62,7 @@ func (m *mockStream) Close() error {
 	return nil
 }
 func (m *mockStream) Write(p []byte) (int, error)      { return m.dataWritten.Write(p) }
-func (m *mockStream) StreamID() protocol.StreamID      { return m.id }
+func (m *mockStream) StreamID() quic.StreamID          { return m.id }
 func (m *mockStream) Reset(error)                      { panic("not implemented") }
 func (m *mockStream) Context() context.Context         { panic("not implemented") }
 func (m *mockStream) SetReadDeadline(time.Time) error  { panic("not implemented") }
