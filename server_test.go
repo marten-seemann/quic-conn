@@ -63,11 +63,12 @@ func (m *mockStream) Close() error {
 }
 func (m *mockStream) Write(p []byte) (int, error)      { return m.dataWritten.Write(p) }
 func (m *mockStream) StreamID() quic.StreamID          { return m.id }
-func (m *mockStream) Reset(error)                      { panic("not implemented") }
 func (m *mockStream) Context() context.Context         { panic("not implemented") }
 func (m *mockStream) SetReadDeadline(time.Time) error  { panic("not implemented") }
 func (m *mockStream) SetWriteDeadline(time.Time) error { panic("not implemented") }
 func (m *mockStream) SetDeadline(time.Time) error      { panic("not implemented") }
+func (m *mockStream) CancelRead(quic.ErrorCode) error  { panic("not implemented") }
+func (m *mockStream) CancelWrite(quic.ErrorCode) error { panic("not implemented") }
 
 type mockQuicListener struct {
 	blockAccept  chan struct{} // close this to make accept return
