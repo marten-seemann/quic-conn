@@ -61,8 +61,11 @@ func (m *mockSession) Close(e error) error {
 	return nil
 }
 
-func (m *mockSession) ConnectionState() quic.ConnectionState { panic("not implemented") }
-func (m *mockSession) Context() context.Context              { panic("not implemented") }
+func (m *mockSession) AcceptUniStream() (quic.ReceiveStream, error) { panic("not implemented") }
+func (m *mockSession) OpenUniStream() (quic.SendStream, error)      { panic("not implemented") }
+func (m *mockSession) OpenUniStreamSync() (quic.SendStream, error)  { panic("not implemented") }
+func (m *mockSession) ConnectionState() quic.ConnectionState        { panic("not implemented") }
+func (m *mockSession) Context() context.Context                     { panic("not implemented") }
 
 var _ quic.Session = &mockSession{}
 
