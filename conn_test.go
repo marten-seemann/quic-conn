@@ -55,10 +55,14 @@ func (m *mockSession) RemoteAddr() net.Addr {
 	return m.remoteAddr
 }
 
-func (m *mockSession) Close(e error) error {
+func (m *mockSession) CloseWithError(_ quic.ErrorCode, e error) error {
 	m.closedWithError = e
 	m.closed = true
 	return nil
+}
+
+func (m *mockSession) Close() error {
+	return m.CloseWithError(0, nil)
 }
 
 func (m *mockSession) AcceptUniStream() (quic.ReceiveStream, error) { panic("not implemented") }

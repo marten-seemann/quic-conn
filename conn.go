@@ -29,7 +29,7 @@ func (c *conn) Read(b []byte) (int, error) {
 	if c.receiveStream == nil {
 		var err error
 		c.receiveStream, err = c.session.AcceptStream()
-		//TODO: check stream id
+		// TODO: check stream id
 		if err != nil {
 			return 0, err
 		}
@@ -59,7 +59,7 @@ func (c *conn) RemoteAddr() net.Addr {
 }
 
 func (c *conn) Close() error {
-	return c.session.Close(nil)
+	return c.session.Close()
 }
 
 func (c *conn) SetDeadline(t time.Time) error {
