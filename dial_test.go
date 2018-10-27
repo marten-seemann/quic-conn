@@ -17,12 +17,10 @@ var _ = Describe("Dial and Listen", func() {
 
 	It("listens", func() {
 		var conn net.PacketConn
-		var conf *quic.Config
 		var tlsConfig *tls.Config
 		tlsConf := &tls.Config{}
-		quicListen = func(c net.PacketConn, tlsConf *tls.Config, quicConfig *quic.Config) (quic.Listener, error) {
+		quicListen = func(c net.PacketConn, tlsConf *tls.Config, _ *quic.Config) (quic.Listener, error) {
 			conn = c
-			conf = quicConfig
 			tlsConfig = tlsConf
 			return nil, nil
 		}
