@@ -67,8 +67,8 @@ func (m *mockStream) Context() context.Context         { panic("not implemented"
 func (m *mockStream) SetReadDeadline(time.Time) error  { panic("not implemented") }
 func (m *mockStream) SetWriteDeadline(time.Time) error { panic("not implemented") }
 func (m *mockStream) SetDeadline(time.Time) error      { panic("not implemented") }
-func (m *mockStream) CancelRead(quic.ErrorCode) error  { panic("not implemented") }
-func (m *mockStream) CancelWrite(quic.ErrorCode) error { panic("not implemented") }
+func (m *mockStream) CancelRead(quic.ErrorCode)        { panic("not implemented") }
+func (m *mockStream) CancelWrite(quic.ErrorCode)       { panic("not implemented") }
 
 type mockQuicListener struct {
 	blockAccept  chan struct{} // close this to make accept return
