@@ -2,6 +2,7 @@ package quicconn
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"net"
 	"time"
@@ -68,7 +69,7 @@ func (m *mockSession) Close() error {
 func (m *mockSession) AcceptUniStream() (quic.ReceiveStream, error) { panic("not implemented") }
 func (m *mockSession) OpenUniStream() (quic.SendStream, error)      { panic("not implemented") }
 func (m *mockSession) OpenUniStreamSync() (quic.SendStream, error)  { panic("not implemented") }
-func (m *mockSession) ConnectionState() quic.ConnectionState        { panic("not implemented") }
+func (m *mockSession) ConnectionState() tls.ConnectionState         { panic("not implemented") }
 func (m *mockSession) Context() context.Context                     { panic("not implemented") }
 
 var _ quic.Session = &mockSession{}
