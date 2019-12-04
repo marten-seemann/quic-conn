@@ -23,10 +23,10 @@ type mockSession struct {
 	openError    error
 
 	closed          bool
-	closedWithError error
+	closedWithError string
 }
 
-func (m *mockSession) AcceptStream() (quic.Stream, error) {
+func (m *mockSession) AcceptStream(context.Context) (quic.Stream, error) {
 	if m.acceptError != nil {
 		return nil, m.acceptError
 	}
@@ -44,7 +44,7 @@ func (m *mockSession) OpenStream() (quic.Stream, error) {
 	return m.streamToOpen, nil
 }
 
-func (m *mockSession) OpenStreamSync() (quic.Stream, error) {
+func (m *mockSession) OpenStreamSync(context.Context) (quic.Stream, error) {
 	return m.streamToOpen, nil
 }
 
@@ -56,21 +56,25 @@ func (m *mockSession) RemoteAddr() net.Addr {
 	return m.remoteAddr
 }
 
-func (m *mockSession) CloseWithError(_ quic.ErrorCode, e error) error {
+func (m *mockSession) CloseWithError(_ quic.ErrorCode, e string) error {
 	m.closedWithError = e
 	m.closed = true
 	return nil
 }
 
 func (m *mockSession) Close() error {
-	return m.CloseWithError(0, nil)
+	return m.CloseWithError(0, "")
 }
 
-func (m *mockSession) AcceptUniStream() (quic.ReceiveStream, error) { panic("not implemented") }
-func (m *mockSession) OpenUniStream() (quic.SendStream, error)      { panic("not implemented") }
-func (m *mockSession) OpenUniStreamSync() (quic.SendStream, error)  { panic("not implemented") }
-func (m *mockSession) ConnectionState() tls.ConnectionState         { panic("not implemented") }
-func (m *mockSession) Context() context.Context                     { panic("not implemented") }
+func (m *mockSession) AcceptUniStream(context.Context) (quic.ReceiveStream, error) {
+	panic("not implemented")
+}
+func (m *mockSession) OpenUniStream() (quic.SendStream, error) { panic("not implemented") }
+func (m *mockSession) OpenUniStreamSync(context.Context) (quic.SendStream, error) {
+	panic("not implemented")
+}
+func (m *mockSession) ConnectionState() tls.ConnectionState { panic("not implemented") }
+func (m *mockSession) Context() context.Context             { panic("not implemented") }
 
 var _ quic.Session = &mockSession{}
 
@@ -161,6 +165,6 @@ var _ = Describe("Conn", func() {
 	It("closes", func() {
 		c.Close()
 		Expect(sess.closed).To(BeTrue())
-		Expect(sess.closedWithError).To(BeNil())
+		Expect(sess.closedWithError).To(BeEmpty())
 	})
 })

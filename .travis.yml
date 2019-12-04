@@ -1,14 +1,12 @@
 language: go
 
 go:
-  - "1.12.x"
+  - "1.13.x"
 
 # first part of the GOARCH workaround
 # setting the GOARCH directly doesn't work, since the value will be overwritten later
 # so set it to a temporary environment variable first
 env:
-  global:
-    - GO111MODULE=on
   matrix:
     - TRAVIS_GOARCH=amd64
     - TRAVIS_GOARCH=386

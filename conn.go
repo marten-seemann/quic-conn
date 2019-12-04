@@ -1,6 +1,7 @@
 package quicconn
 
 import (
+	"context"
 	"net"
 	"time"
 
@@ -28,7 +29,7 @@ func newConn(sess quic.Session) (*conn, error) {
 func (c *conn) Read(b []byte) (int, error) {
 	if c.receiveStream == nil {
 		var err error
-		c.receiveStream, err = c.session.AcceptStream()
+		c.receiveStream, err = c.session.AcceptStream(context.Background())
 		// TODO: check stream id
 		if err != nil {
 			return 0, err

@@ -1,6 +1,7 @@
 package quicconn
 
 import (
+	"context"
 	"net"
 
 	quic "github.com/lucas-clemente/quic-go"
@@ -14,7 +15,7 @@ var _ net.Listener = &server{}
 
 // Accept waits for and returns the next connection to the listener.
 func (s *server) Accept() (net.Conn, error) {
-	sess, err := s.quicServer.Accept()
+	sess, err := s.quicServer.Accept(context.Background())
 	if err != nil {
 		return nil, err
 	}

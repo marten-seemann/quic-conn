@@ -17,6 +17,8 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+const alpn = "quic-conn"
+
 var _ = Describe("Integration tests", func() {
 	var data []byte
 	var tlsConfig *tls.Config
@@ -37,7 +39,10 @@ var _ = Describe("Integration tests", func() {
 
 		tlsCert, err := tls.X509KeyPair(certPEM, keyPEM)
 		Expect(err).ToNot(HaveOccurred())
-		tlsConfig = &tls.Config{Certificates: []tls.Certificate{tlsCert}}
+		tlsConfig = &tls.Config{
+			Certificates: []tls.Certificate{tlsCert},
+			NextProtos:   []string{alpn},
+		}
 	}
 
 	BeforeEach(func() {
@@ -68,7 +73,10 @@ var _ = Describe("Integration tests", func() {
 		}()
 
 		addr := <-serverAddr
-		tlsConf := &tls.Config{InsecureSkipVerify: true}
+		tlsConf := &tls.Config{
+			InsecureSkipVerify: true,
+			NextProtos:         []string{alpn},
+		}
 		clientConn, err := quicconn.Dial(addr.String(), tlsConf)
 		Expect(err).ToNot(HaveOccurred())
 		// send data
@@ -98,7 +106,10 @@ var _ = Describe("Integration tests", func() {
 		}()
 
 		addr := <-serverAddr
-		tlsConf := &tls.Config{InsecureSkipVerify: true}
+		tlsConf := &tls.Config{
+			InsecureSkipVerify: true,
+			NextProtos:         []string{alpn},
+		}
 		clientConn, err := quicconn.Dial(addr.String(), tlsConf)
 		Expect(err).ToNot(HaveOccurred())
 		// send data
@@ -130,7 +141,10 @@ var _ = Describe("Integration tests", func() {
 		}()
 
 		addr := <-serverAddr
-		tlsConf := &tls.Config{InsecureSkipVerify: true}
+		tlsConf := &tls.Config{
+			InsecureSkipVerify: true,
+			NextProtos:         []string{alpn},
+		}
 		clientConn, err := quicconn.Dial(addr.String(), tlsConf)
 		Expect(err).ToNot(HaveOccurred())
 		// receive data
@@ -162,7 +176,10 @@ var _ = Describe("Integration tests", func() {
 		}()
 
 		addr := <-serverAddr
-		tlsConf := &tls.Config{InsecureSkipVerify: true}
+		tlsConf := &tls.Config{
+			InsecureSkipVerify: true,
+			NextProtos:         []string{alpn},
+		}
 		clientConn, err := quicconn.Dial(addr.String(), tlsConf)
 		Expect(err).ToNot(HaveOccurred())
 		// receive data

@@ -84,7 +84,7 @@ func newMockQuicListener() *mockQuicListener {
 	}
 }
 
-func (l *mockQuicListener) Accept() (quic.Session, error) {
+func (l *mockQuicListener) Accept(context.Context) (quic.Session, error) {
 	<-l.blockAccept
 	return l.sessToAccept, l.acceptErr
 }
