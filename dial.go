@@ -33,18 +33,18 @@ func Listen(network, laddr string, tlsConfig *tls.Config) (net.Listener, error) 
 // it returns once the connection is established and secured with forward-secure keys
 func Dial(addr string, tlsConfig *tls.Config) (net.Conn, error) {
 	// DialAddr returns once a forward-secure connection is established
-	quicSession, err := quic.DialAddr(addr, tlsConfig, nil)
+	qConn, err := quic.DialAddr(addr, tlsConfig, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	sendStream, err := quicSession.OpenStream()
+	sendStream, err := qConn.OpenStream()
 	if err != nil {
 		return nil, err
 	}
 
 	return &conn{
-		session:    quicSession,
+		quicConn:   qConn,
 		sendStream: sendStream,
 	}, nil
 }

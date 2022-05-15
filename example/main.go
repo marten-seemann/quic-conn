@@ -26,10 +26,7 @@ func main() {
 	if *startServer {
 		// start the server
 		go func() {
-			tlsConf, err := generateTLSConfig()
-			if err != nil {
-				panic(err)
-			}
+			tlsConf := generateTLSConfig()
 
 			ln, err := quicconn.Listen("udp", ":8081", tlsConf)
 			if err != nil {
@@ -59,8 +56,11 @@ func main() {
 	if *startClient {
 		// run the client
 		go func() {
-			tlsConf := &tls.Config{InsecureSkipVerify: true}
-			conn, err := quicconn.Dial("quic.clemente.io:8081", tlsConf)
+			tlsConf := &tls.Config{
+				InsecureSkipVerify: true,
+				NextProtos:   []string{"quic-echo-example"},
+			}
+			conn, err := quicconn.Dial("localhost:8081", tlsConf)
 			if err != nil {
 				panic(err)
 			}
@@ -80,34 +80,26 @@ func main() {
 	time.Sleep(time.Hour)
 }
 
-func generateTLSConfig() (*tls.Config, error) {
-	key, err := rsa.GenerateKey(rand.Reader, 2048)
+// Setup a bare-bones TLS config for the server
+func generateTLSConfig() *tls.Config {
+	key, err := rsa.GenerateKey(rand.Reader, 1024)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
-	template := x509.Certificate{
-		SerialNumber: big.NewInt(1),
-		NotBefore:    time.Now(),
-		NotAfter:     time.Now().Add(time.Hour),
-		KeyUsage:     x509.KeyUsageCertSign | x509.KeyUsageDigitalSignature,
-	}
+	template := x509.Certificate{SerialNumber: big.NewInt(1)}
 	certDER, err := x509.CreateCertificate(rand.Reader, &template, &template, &key.PublicKey, key)
 	if err != nil {
-		fmt.Println(err)
-		return nil, err
+		panic(err)
 	}
-	keyPEM := pem.EncodeToMemory(&pem.Block{
-		Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key),
-	})
-	b := pem.Block{Type: "CERTIFICATE", Bytes: certDER}
-	certPEM := pem.EncodeToMemory(&b)
+	keyPEM := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)})
+	certPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certDER})
 
 	tlsCert, err := tls.X509KeyPair(certPEM, keyPEM)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
-
 	return &tls.Config{
 		Certificates: []tls.Certificate{tlsCert},
-	}, nil
+		NextProtos:   []string{"quic-echo-example"},
+	}
 }
