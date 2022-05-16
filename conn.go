@@ -16,7 +16,6 @@ type conn struct {
 }
 
 func newConn(qConn quic.Connection) (*conn, error) {
-	
 	stream, err := qConn.OpenStream()
 	if err != nil {
 		return nil, err
