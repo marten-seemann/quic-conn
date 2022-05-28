@@ -9,19 +9,19 @@ import (
 )
 
 type conn struct {
-	session quic.Session
+	quicConn quic.Connection
 
 	receiveStream quic.Stream
 	sendStream    quic.Stream
 }
 
-func newConn(sess quic.Session) (*conn, error) {
-	stream, err := sess.OpenStream()
+func newConn(qConn quic.Connection) (*conn, error) {
+	stream, err := qConn.OpenStream()
 	if err != nil {
 		return nil, err
 	}
 	return &conn{
-		session:    sess,
+		quicConn:    qConn,
 		sendStream: stream,
 	}, nil
 }
@@ -29,7 +29,7 @@ func newConn(sess quic.Session) (*conn, error) {
 func (c *conn) Read(b []byte) (int, error) {
 	if c.receiveStream == nil {
 		var err error
-		c.receiveStream, err = c.session.AcceptStream(context.Background())
+		c.receiveStream, err = c.quicConn.AcceptStream(context.Background())
 		// TODO: check stream id
 		if err != nil {
 			return 0, err
@@ -51,16 +51,16 @@ func (c *conn) Write(b []byte) (int, error) {
 // LocalAddr returns the local network address.
 // needed to fulfill the net.Conn interface
 func (c *conn) LocalAddr() net.Addr {
-	return c.session.LocalAddr()
+	return c.quicConn.LocalAddr()
 }
 
 // RemoteAddr returns the remote network address.
 func (c *conn) RemoteAddr() net.Addr {
-	return c.session.RemoteAddr()
+	return c.quicConn.RemoteAddr()
 }
 
 func (c *conn) Close() error {
-	return c.session.Close()
+	return c.receiveStream.Close()
 }
 
 func (c *conn) SetDeadline(t time.Time) error {
